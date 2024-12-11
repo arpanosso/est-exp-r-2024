@@ -158,22 +158,96 @@ dados |>
   geom_hline(yintercept = 5,color="red") +
   labs(title = "Média Final")
 
+# Exercício 2
+num <- 2.004
+if(num %% 1 == 0) {
+  print("Número Inteiro")
+  }else{
+  print("Número Decimal")
+  }
+
+# Exercício 3 - adicionando o nulo tmb
+num <- -1
+if(num == 0){
+  print("Nulo")
+}else if(num > 0){
+  print("Positivo")
+}else{
+  print("Negativo")
+}
 
 
+# Exercício 4
+vogais <-c("a","e","i","o","u")
+variavel <- 1
+if(is.character(variavel)){
+  variavel <- stringr::str_to_lower(variavel)
+  if(variavel %in% vogais ){
+    print("Vogal")
+  } else{
+    print("Consoante")
+  }
+}else{
+  print("Não é caracter")
+}
 
 
+# Exercício 5
+variavel <- 52
+if(is.numeric(variavel)){
+  if(variavel %% 2 ==0 ){
+    print("Par")
+  } else{
+    print("Impar")
+  }
+}else{
+  print("Não é numero")
+}
 
+# Exercício 6
+a <- -2
+b <- 4
+c <- -2
+delta <- b*b - 4*a*c
+if(delta < 0){
+  print("Raízes são imaginárias")
+} else if(delta == 0){
+  x = -b/(2*a)
+  print(x)
+} else{
+  x1 = (-b+sqrt(delta))/2/a
+  x2 = (-b-sqrt(delta))/2/a
+  print(x1)
+  print(x2)
+}
 
+# Exercício 7
+A <- 15
+B <- 15
+C <- 15
+if((A<B+C)&(B<A+C)&(C<A+B)){
+  if((A==B)&(B==C)){
+    print("Equilátero")
+  }else if((A==B)|(A==C)|(B==C)){
+    print("Isósceles")
+  }else{
+    print("Escaleno")
+  }
+}else{
+  print("Não é triângulo")
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
+# Exercício 8
+# Um ano é bissexto se ele for divisível por 400 ou se ele for divisível por 4
+# e não por 100.
+# se (ano mod 400 == 0) ou ((ano mod 4 == 0) e (ano mod 100 != 0)) entao
+# escreval(ano, " é bisexto!")
+# fimse
+# exemplos: Bissexto: 1980, 1984, 1988, 1992, 1996 e 2000.
+# 1900 não foi bissexto, mas 1600 foi
+ano <- 1997
+if((ano%%400==0)|((ano%%4==0)&(ano%%100!=0))){
+  print("Ano bisexto")
+}else{
+  print("Não bisexto")
+}

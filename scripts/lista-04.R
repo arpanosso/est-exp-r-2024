@@ -92,7 +92,11 @@ modelo_cubico <- lm(argila ~x + x2 + x3,
 summary.lm(modelo_cubico)
 ## Para casa, adicionar as equações
 ## aos gráficos
-
+data_set  |>
+  ggplot(aes(x=x, y=argila)) +
+  geom_point() +
+  geom_smooth(method = "lm",
+              se=FALSE)
 
 
 
