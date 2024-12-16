@@ -114,28 +114,134 @@ data_set |>
 Quais as principais localidades emissoras, crie um ranking com os top $10$ emissores para os útimos $5$ anos.
 
 ```{r}
-data_set |> 
+
+```
+
+### Análise multivariada exploratória para a série temporal
+
+```{r}
+df_aux <- data_set |> 
   filter(
     sector != "forestry-and-land-use"
     ) |> 
   group_by(source_name, year) |> 
   summarise(
     emission = sum(emissions_quantity, na.rm = TRUE)
-  )
-```
-
-### Análise multivariada exploratória para a série temporal
-
-```{r}
- 
+  ) |> 
+  pivot_wider(names_from = year, 
+              values_from = emission,
+              names_prefix = "co2e_") |> 
+  drop_na() |> 
+  ungroup()
 ```
 
 
 #### Análise de agrupamento hierárquico
 
 ```{r}
- 
-
+rotulos <- df_aux |> 
+  pull(source_name)
+glimpse(df_aux)
 ```
+### Análise de correlação linear
+
+Construir e visualizar a matriz de correlação entre os anos.
+
+```{r}
+df_aux |> 
+  select(-source_name) |> 
+  cor() |> 
+  corrplot::corrplot()
+
+df_aux |> 
+  select(-source_name) |> 
+  drop_na() |> 
+  sample_n(20) |> 
+  t() |> 
+  cor(use = "all.obs" ) |> 
+  corrplot::corrplot()
+```
+
+#### Padronização do banco de dados
+
+```{r}
+library(vegan)
+df_pad <- decostand(
+  df_aux |> select(-source_name),
+  method = "standardize",
+  na.rm = TRUE
+)
+df_pad
+```
+
+#### Cálculo da distância euclidiana entre as cidades.
+
+```{r}
+df_pad_euc <- vegdist(df_pad, method = "euclidian")
+```
+
+#### Agregação dos pontos semelhantes.
+```{r}
+df_pad_euc_ward <- hclust(df_pad_euc, 
+                          method = "ward.D")
+```
+
+#### Construção do Dendrograma
+```{r}
+plot(df_pad_euc_ward)
+```
+O Dendrograma apresentou a formação de 3 grupos, vamos identidicar cada elemento do grupo.
+
+```{r}
+grupos <- cutree(df_pad_euc_ward, 3)
+df_aux |> 
+  add_column(grupos) |> 
+  mutate(
+    emission_mean = (co2e_2021+co2e_2022+
+      co2e_2023+co2e_2024)/4
+  ) |> 
+  ggplot(aes(x=emission_mean))+
+  geom_histogram(color="black",fill="lightgray") +
+  facet_wrap(~grupos,scales = "free") +
+  theme_bw()
+```
+#### Construção do mapa de calor
+
+```{r}
+heatmap(as.matrix(df_pad_euc))
+```
+#### Plotando os pontos.
+```{r}
+df_aux_plot <- data_set |> 
+  filter(
+    sector != "forestry-and-land-use"
+    ) |> 
+  group_by(source_name, year) |> 
+  summarise(
+    lon = mean(lon, na.rm = TRUE),
+    lat = mean(lat, na.rm = TRUE),
+    emission = sum(emissions_quantity, na.rm = TRUE)
+  ) |> 
+  pivot_wider(names_from = year, 
+              values_from = emission,
+              names_prefix = "co2e_") |> 
+  drop_na() |> 
+  ungroup()
+```
+
+
+Agrupando os dos auxiliares
+
+```{r}
+df_aux_plot |> 
+  left_join(df_aux |> 
+  add_column(grupos) |> 
+  select(source_name, grupos),
+  by = "source_name") |> 
+  ggplot(aes(x=lon, y=lat, color = as_factor(grupos)))+
+  geom_point()+
+  theme_bw()
+```
+
 
 #### Análise de Componentes Principais
