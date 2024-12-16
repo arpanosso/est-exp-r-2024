@@ -1,7 +1,8 @@
 ---
 title: "Lista-07"
+subtitle: "Análise de dados de remoção de carbono (Peru)"
 author: "Panosso, AR"
-date: "2024-12-16"
+date: "16-12-2024"
 output: html_document
 ---
 
@@ -12,104 +13,85 @@ knitr::opts_chunk$set(echo = TRUE,
                       warning = FALSE)
 ```
 
-## Análise de dados de remoção de carbono (Perú)
+### Roteiro da análise
 
-  1. Downlaod
+  1. Download
   1. Faxina de dados
   1. Pré-processamento
-  1. Análise estatistica descritiva
-  1. Análise multivariada para a série temporal
+  1. Análise estatística descritiva
+  1. Análise multivariada exploratória para a série temporal
   1. Mapeamento
 
+### Download
 
-## Download dos dados
+Dados podem ser encontrados em [Climate TRACE](www.climatetrace.org). Vários arquivos do tipo `.csv` se encontram na pasta `data-raw/per`, referentes a diferentes fontes de emissão de gases do efeito estufa para o país.
 
-Dados podem ser encontrados em "www.climatetrace.org". Vários arquivos do tipo `.csv` se encontram na pasta data-raw/per, referentes a diferentes fontes de emissão de gases do efeito estufa para o país.
+### Faxina de dados
 
-## Carregando os pacotes.
+### Carregando os pacotes.
 ```{r}
 library(tidyverse)
 library(readxl)
 library(abjutils)
 ```
 
-## Ler os arquivos .csv
+### Ler os arquivos .csv
 
-### Criar a lista de arquivos. 15 arquivos no total/
+### Criar a lista de arquivos
 
-```{r}
-
-pastas <- list.files("../data-raw/per/")
-for(i in seq_along(pastas)){
-  files <-list.files(paste0("../data-raw/per/",pastas[i]),
-             pattern = "sources.csv$",full.names = TRUE)
-  df <- map_df(files,my_file_reader)
-  write_csv(df,paste0("../data-raw/per/",pastas[i],".csv"))
-}
-
-```
-
-### Ler um arquivo da lista.
-
-```{r}
-my_file_reader <- function(path){
-  read.csv(path) |> 
-    select(source_id:capacity_factor)
-}
-# my_file_reader(lista_csv[1])
-dados <- map_df(lista_csv,my_file_reader)
-```
-
-### Criar uma função para ler e guardar o caminho.
 ```{r}
 
 ```
 
-### Aplicar a função para todos os arquivos da lista
+### Carregar apenas 01 arquivo.
+
 ```{r}
 
 ```
 
-### Preparo dos dados.
-
-A patir da coluna `end_time`, criar o ano e o mês referente à avaliação, filtrar os dados para emissão de CO2 equivalente 100 anos `co2e_100yr`. Apenas para o setor de `forestry-and-land-use`. Criar a soma das das `emission_ _quantity`.
+### Criar uma função para ler os arquivos.
 
 ```{r}
-dados |> 
-  mutate(
-    year = year(end_time),
-    month = month(end_time),
-  ) |> filter(
-    gas == "co2e_100yr",
-    year == 2022,
-    source_name == "Abancay",
-    sector == "forestry-and-land-use") |> 
-  pull(subsector) |> unique()
 
 ```
 
+### Aplicar a função para todos os arquivos da lista.
 
 ```{r}
-dados |> 
-  mutate(
-    year = year(end_time),
-    month = month(end_time),
-  ) |> filter(
-    gas == "co2e_100yr",
-    year == 2022,
-    source_name == "Abancay",
-    sector != "forestry-and-land-use",
-    # !subsector %in% c("forest-land-clearing",
-    #                    "forest-land-degradation",
-    #                    "shrubgrass-fires",
-    #                    "forest-land-fires",
-    #                    "wetland-fires",
-    #                    "removals")
-  ) |> 
-  # group_by(subsector) |> 
-  summarise(
-    emission = sum(emissions_quantity)
-  )
+
+
 ```
 
-### Agregar os dados para emissão em 
+### Pré-processamento
+
+A patir da coluna `end_time`, criar o ano e o mês referente à avaliação, filtrar os dados para emissão de $CO_2$ equivalente 100 anos `co2e_100yr`. Não se esqueça de filtrar o nome do país.
+
+Criar viasualizações de dados, levando-se em consideração que para os cálculos de emissão de um local os setor de uso da terra e florestas deve ser desconsiderado.
+
+```{r}
+
+```
+
+### Análise estatística descritiva
+
+Quais as principais localidades emissoras, crie um ranking com os top $10$ emissores para os útimos $5$ anos.
+
+```{r}
+
+```
+
+### Análise multivariada exploratória para a série temporal
+
+```{r}
+ 
+```
+
+
+#### Análise de agrupamento hierárquico
+
+```{r}
+ 
+
+```
+
+#### Análise de Componentes Principais

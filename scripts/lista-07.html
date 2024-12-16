@@ -11,7 +11,6 @@
 
 <meta name="author" content="Panosso, AR" />
 
-<meta name="date" content="2024-12-16" />
 
 <title>Lista-07</title>
 
@@ -351,109 +350,76 @@ display: none;
 
 
 <h1 class="title toc-ignore">Lista-07</h1>
+<h3 class="subtitle">Análise de dados de remoção de carbono (Peru)</h3>
 <h4 class="author">Panosso, AR</h4>
-<h4 class="date">2024-12-16</h4>
+<h4 class="date">16-12-2024</h4>
 
 </div>
 
 
-<div id="análise-de-dados-de-remoção-de-carbono-perú" class="section level2">
-<h2>Análise de dados de remoção de carbono (Perú)</h2>
+<div id="roteiro-da-análise" class="section level3">
+<h3>Roteiro da análise</h3>
 <ol style="list-style-type: decimal">
-<li>Downlaod</li>
+<li>Download</li>
 <li>Faxina de dados</li>
 <li>Pré-processamento</li>
-<li>Análise estatistica descritiva</li>
-<li>Análise multivariada para a série temporal</li>
+<li>Análise estatística descritiva</li>
+<li>Análise multivariada exploratória para a série temporal</li>
 <li>Mapeamento</li>
 </ol>
 </div>
-<div id="download-dos-dados" class="section level2">
-<h2>Download dos dados</h2>
-<p>Dados podem ser encontrados em “www.climatetrace.org”. Vários
-arquivos do tipo <code>.csv</code> se encontram na pasta data-raw/per,
-referentes a diferentes fontes de emissão de gases do efeito estufa para
-o país.</p>
+<div id="download" class="section level3">
+<h3>Download</h3>
+<p>Dados podem ser encontrados em <a href="www.climatetrace.org">Climate
+TRACE</a>. Vários arquivos do tipo <code>.csv</code> se encontram na
+pasta <code>data-raw/per</code>, referentes a diferentes fontes de
+emissão de gases do efeito estufa para o país.</p>
 </div>
-<div id="carregando-os-pacotes." class="section level2">
-<h2>Carregando os pacotes.</h2>
+<div id="faxina-de-dados" class="section level3">
+<h3>Faxina de dados</h3>
+</div>
+<div id="carregando-os-pacotes." class="section level3">
+<h3>Carregando os pacotes.</h3>
 <pre class="r"><code>library(tidyverse)
 library(readxl)
 library(abjutils)</code></pre>
 </div>
-<div id="ler-os-arquivos-.csv" class="section level2">
-<h2>Ler os arquivos .csv</h2>
-<div id="criar-a-lista-de-arquivos.-15-arquivos-no-total" class="section level3">
-<h3>Criar a lista de arquivos. 15 arquivos no total/</h3>
-<pre class="r"><code>lista_csv &lt;- list.files(&quot;../data-raw/per/&quot;,
-                        recursive = TRUE,full.names = TRUE,
-                        pattern = &quot;sources.csv$&quot;)</code></pre>
+<div id="ler-os-arquivos-.csv" class="section level3">
+<h3>Ler os arquivos .csv</h3>
 </div>
-<div id="ler-um-arquivo-da-lista." class="section level3">
-<h3>Ler um arquivo da lista.</h3>
-<pre class="r"><code>my_file_reader &lt;- function(path){
-  read.csv(path) |&gt; 
-    select(source_id:capacity_factor) |&gt; 
-    mutate(
-      path = path
-    )
-}
-# my_file_reader(lista_csv[1])
-dados &lt;- map_df(lista_csv,my_file_reader)</code></pre>
+<div id="criar-a-lista-de-arquivos" class="section level3">
+<h3>Criar a lista de arquivos</h3>
 </div>
-<div id="criar-uma-função-para-ler-e-guardar-o-caminho." class="section level3">
-<h3>Criar uma função para ler e guardar o caminho.</h3>
+<div id="carregar-apenas-01-arquivo." class="section level3">
+<h3>Carregar apenas 01 arquivo.</h3>
 </div>
-<div id="aplicar-a-função-para-todos-os-arquivos-da-lista" class="section level3">
-<h3>Aplicar a função para todos os arquivos da lista</h3>
+<div id="criar-uma-função-para-ler-os-arquivos." class="section level3">
+<h3>Criar uma função para ler os arquivos.</h3>
 </div>
-<div id="preparo-dos-dados." class="section level3">
-<h3>Preparo dos dados.</h3>
+<div id="aplicar-a-função-para-todos-os-arquivos-da-lista." class="section level3">
+<h3>Aplicar a função para todos os arquivos da lista.</h3>
+</div>
+<div id="pré-processamento" class="section level3">
+<h3>Pré-processamento</h3>
 <p>A patir da coluna <code>end_time</code>, criar o ano e o mês
-referente à avaliação, filtrar os dados para emissão de CO2 equivalente
-100 anos <code>co2e_100yr</code>. Apenas para o setor de
-<code>forestry-and-land-use</code>. Criar a soma das das
-<code>emission_ _quantity</code>.</p>
-<pre class="r"><code>dados |&gt; 
-  mutate(
-    year = year(end_time),
-    month = month(end_time),
-  ) |&gt; filter(
-    gas == &quot;co2e_100yr&quot;,
-    year == 2022,
-    source_name == &quot;Abancay&quot;,
-    sector == &quot;forestry-and-land-use&quot;) |&gt; 
-  pull(subsector) |&gt; unique()</code></pre>
-<pre><code>## [1] &quot;forest-land-clearing&quot;    &quot;forest-land-degradation&quot;
-## [3] &quot;forest-land-fires&quot;       &quot;net-forest-land&quot;        
-## [5] &quot;net-shrubgrass&quot;          &quot;net-wetland&quot;            
-## [7] &quot;removals&quot;                &quot;shrubgrass-fires&quot;       
-## [9] &quot;wetland-fires&quot;</code></pre>
-<pre class="r"><code>dados |&gt; 
-  mutate(
-    year = year(end_time),
-    month = month(end_time),
-  ) |&gt; filter(
-    gas == &quot;co2e_100yr&quot;,
-    year == 2022,
-    source_name == &quot;Abancay&quot;,
-    sector != &quot;forestry-and-land-use&quot;,
-    # !subsector %in% c(&quot;forest-land-clearing&quot;,
-    #                    &quot;forest-land-degradation&quot;,
-    #                    &quot;shrubgrass-fires&quot;,
-    #                    &quot;forest-land-fires&quot;,
-    #                    &quot;wetland-fires&quot;,
-    #                    &quot;removals&quot;)
-  ) |&gt; 
-  # group_by(subsector) |&gt; 
-  summarise(
-    emission = sum(emissions_quantity)
-  )</code></pre>
-<pre><code>##   emission
-## 1 336901.5</code></pre>
+referente à avaliação, filtrar os dados para emissão de <span class="math inline">\(CO_2\)</span> equivalente 100 anos
+<code>co2e_100yr</code>. Não se esqueça de filtrar o nome do país.</p>
+<p>Criar viasualizações de dados, levando-se em consideração que para os
+cálculos de emissão de um local os setor de uso da terra e florestas
+deve ser desconsiderado.</p>
 </div>
-<div id="agregar-os-dados-para-emissão-em" class="section level3">
-<h3>Agregar os dados para emissão em</h3>
+<div id="análise-estatística-descritiva" class="section level3">
+<h3>Análise estatística descritiva</h3>
+<p>Quais as principais localidades emissoras, crie um ranking com os top
+<span class="math inline">\(10\)</span> emissores para os útimos <span class="math inline">\(5\)</span> anos.</p>
+</div>
+<div id="análise-multivariada-exploratória-para-a-série-temporal" class="section level3">
+<h3>Análise multivariada exploratória para a série temporal</h3>
+<div id="análise-de-agrupamento-hierárquico" class="section level4">
+<h4>Análise de agrupamento hierárquico</h4>
+</div>
+<div id="análise-de-componentes-principais" class="section level4">
+<h4>Análise de Componentes Principais</h4>
 </div>
 </div>
 
