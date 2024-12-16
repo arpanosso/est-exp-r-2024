@@ -40,26 +40,43 @@ library(abjutils)
 ### Criar a lista de arquivos
 
 ```{r}
-
+files_list <- list.files("../data-raw/",
+                         full.names = TRUE,
+                         recursive  = TRUE,
+                         pattern = "csv$")
 ```
 
 ### Carregar apenas 01 arquivo.
 
 ```{r}
+read_csv(files_list[1])
+notas <- c(4,7,NA,5,NA)
+mean(notas,na.rm = TRUE)
 
+2 == 2
+NA == NA
+notas == NA
+sum(is.na(notas))
 ```
 
 ### Criar uma função para ler os arquivos.
 
 ```{r}
-
+my_reader <- function(x){
+  read_csv(x) |> 
+    mutate(
+      path = x, # salvando o caminho dentro do arquivo
+      year = year(end_time),
+      month = month(end_time)
+    ) |> 
+    relocate(year,month) |> 
+    filter(gas == "co2e_100yr")
+}
 ```
-
 ### Aplicar a função para todos os arquivos da lista.
-
 ```{r}
-
-
+data_set <- map_df(files_list,my_reader)
+glimpse(data_set)
 ```
 
 ### Pré-processamento
@@ -69,7 +86,27 @@ A patir da coluna `end_time`, criar o ano e o mês referente à avaliação, fil
 Criar viasualizações de dados, levando-se em consideração que para os cálculos de emissão de um local os setor de uso da terra e florestas deve ser desconsiderado.
 
 ```{r}
+data_set |> 
+  pull(year) |> 
+  unique()
 
+data_set |> 
+  filter(
+    year == 2024,
+    sector != "forestry-and-land-use"
+    ) |> 
+  group_by(source_name) |> 
+  summarise(
+    emission = sum(emissions_quantity, na.rm = TRUE)
+  ) |> 
+  mutate(
+    source_name = fct_reorder(source_name, emission),
+    source_name = fct_lump(source_name,15, w=emission)
+  ) |> 
+  drop_na() |> filter(source_name!="Other") |> 
+  ggplot(aes(x=emission,y=source_name)) +
+  geom_col(color="black",fill="gray") +
+  theme_bw()
 ```
 
 ### Análise estatística descritiva
@@ -77,7 +114,14 @@ Criar viasualizações de dados, levando-se em consideração que para os cálcu
 Quais as principais localidades emissoras, crie um ranking com os top $10$ emissores para os útimos $5$ anos.
 
 ```{r}
-
+data_set |> 
+  filter(
+    sector != "forestry-and-land-use"
+    ) |> 
+  group_by(source_name, year) |> 
+  summarise(
+    emission = sum(emissions_quantity, na.rm = TRUE)
+  )
 ```
 
 ### Análise multivariada exploratória para a série temporal
