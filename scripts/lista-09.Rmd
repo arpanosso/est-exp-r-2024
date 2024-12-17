@@ -1,5 +1,5 @@
 ---
-title: "Lista-08"
+title: "Lista-09"
 author: "Panosso, AR"
 date: "17-12-2024"
 output: html_document
@@ -32,7 +32,7 @@ theme_set(theme_bw()) # setar o tema padrão para o ggplot
 Para o exemplo, ler o arquivo **producao-da-cultura.xlsx**. Não se esqueça de deixar os tratamentos como fator.
 
 ```{r}
-data_set <- read_rds("../data/producao-de-cultura.rds")
+data_set <- read_rds("../data/ganho-de-peso.rds")
 glimpse(data_set)
 ```
 
@@ -44,11 +44,11 @@ Estatísticas resumos por tratamento, gráficos histograma, boxplot e qqnorm.
 
 ```{r}
 data_set |> 
-  group_by(trat) |> 
+  group_by(racoes) |> 
   summarise(
     n = n(),
-    media = mean(prod,na.rm = TRUE),
-    desv_pad = sd(prod,na.rm = TRUE),
+    media = mean(a_peso ,na.rm = TRUE),
+    desv_pad = sd(a_peso ,na.rm = TRUE),
     erro_pad = desv_pad/sqrt(n)
   )
 ```
@@ -57,11 +57,10 @@ data_set |>
 
 ```{r}
 data_set |> 
-  ggplot(aes(x=prod, y=..density..)) +
+  ggplot(aes(x=a_peso , y=..density..)) +
   geom_histogram(color="black", fill="lightgray") +
-  labs(y = "Densidade", x = "Produção da Cultura")
+  labs(y = "Densidade", x = "Ganho de Peso")
 ```
-
 
 #### Gráfico Boxplot
 
@@ -69,37 +68,37 @@ Criar o boxplot ordenados por valor de média da variável alvo.
 
 ```{r}
 data_set |> 
-  group_by(trat) |> 
+  group_by(racoes) |> 
   mutate(
-    media = mean(prod, na.rm = TRUE),
-  ) |> 
+    media = mean(a_peso, na.rm = TRUE),
+    ) |>
   ungroup() |> 
   mutate(
-    trat = trat |> as_factor() |> fct_reorder(media)
+    racoes = racoes |> as_factor() |> fct_reorder(media)
   ) |> 
-  ggplot(aes(x=trat, y=prod)) +
+  ggplot(aes(x=racoes, y=a_peso )) +
   geom_boxplot(fill="lightgray") + 
   geom_jitter(color="blue2") +
-  labs(x="Tratamentos", y="Produção da Cultura (kg/parcela)")
+  labs(x="Tratamentos", y="Produção da Cultura (kg/parcela)") 
+  
 ```
 
 #### QQ-plot
 
 ```{r}
 data_set |> 
-  ggplot(aes(sample = prod)) +
+  ggplot(aes(sample = a_peso)) +
   stat_qq() +
   stat_qq_line(color = "blue") +
   labs(x="Quantil teórico", y="Quantil observado")
 ```
-
 ### Extração das colunas para realizar a análise de variância.
 
 Para realizar a construção do modelo para ANOVA deve-se extrair todas as colunas envolvidas na definição do modelo da mesma.
 
 ```{r}
-y <- data_set |> pull(prod)
-trat <- data_set |>  pull(trat) |> as_factor()
+y <- data_set |> pull(a_peso)
+trat <- data_set |>  pull(racoes) |> as_factor()
 is.factor(trat) # verificando se trat é fator
 is.numeric(y) # verificando se y é numérico
 ```
@@ -134,7 +133,7 @@ yp <- predict(mod)
 #### Definir o data.frame contendo as colunas extraídas, os resíduos e valores preditos
 
 ```{r}
-diagnostico <- data.frame(trat, y, yt, yp, rs)
+diagnostico <- data.frame(trat, y, yp, rs)
 glimpse(diagnostico)
 ```
 #### Histograma
@@ -225,17 +224,17 @@ Quatro testes podem ser empregados, o teste de Levene, o teste de Brown-Forsythe
 
 ```{r}
 # Teste clássico de Levene
-levene.test(yt,trat,location="mean")
+levene.test(y,trat,location="mean")
 
 # Teste Brown-Forsythe
-levene.test(yt,trat)
+levene.test(y,trat)
 
 #também disponivél no pacote HH
 #install.packages("HH")
-hov(yt~trat)
+hov(y~trat)
 
 # Teste de Bartlett
-bartlett.test(yt~trat)
+bartlett.test(y~trat)
 ```
 ### Transformação - Bartlett
 
@@ -290,7 +289,7 @@ yt = \log{y}: \text{se lambda não difere de 0}
 
 ### Definição do modelo final
 ```{r}
-modelo_final <- aov(yt ~ trat)
+modelo_final <- aov(y ~ trat)
 anova(modelo_final)
 ```
 
@@ -301,7 +300,7 @@ $$CV =100 \frac{\sqrt{QM_{res}}}{\hat{m}}$$
 sqr <- deviance(modelo_final) # soma de quadrados dos resíduos
 glr <- df.residual(modelo_final) # graus de liberdade dos resíduos
 qmr <- sqr/glr # calculando o quadrado médio dos resíduos
-media <- mean(yt, na.rm = TRUE) # média geral do ensaio
+media <- mean(y, na.rm = TRUE) # média geral do ensaio
 100*sqrt(qmr)/media # cálculo do CV
 ```
 
@@ -327,7 +326,7 @@ HSD.test(modelo_final, "trat",
 Utilizando o Pacote ExpDes.pt
 
 ```{r}
-dic(trat,yt,mcomp = "tukey", sigF = 0.05,
+dic(trat,y,mcomp = "tukey", sigF = 0.05,
     sigT = 0.05)
 ```
 
@@ -366,21 +365,19 @@ LSD.test(modelo_final, "trat",
 ```{r}
 tukey <- HSD.test(modelo_final, "trat",
          alpha=0.05, group = TRUE)
-data_set |> 
-  group_by(trat) |> 
-  summarise(
-    media = mean(prod),
-    epm = sd(prod)/sqrt(n())
-  ) |> 
-  mutate(
-    trat = trat |> as_factor() |> fct_reorder(media)
-  ) |> 
-  ggplot(aes(x=trat, y=media)) + 
-  geom_col(color="black", fill="gray") +
-  geom_text(aes(label = tukey$groups$groups,
-                y = media+epm)) +
-  labs(x="Tratamentos", y="Produção (kg/parcela)")
-
+tukey$groups |> 
+  data.frame() |> 
+  add_column(trat = rownames(tukey$groups)) |> 
+    mutate(
+    trat = trat |> as_factor() |> fct_reorder(y),
+    epm = sqrt(qmr/5)) |> 
+  ggplot(aes(x=trat, y=y)) + 
+  geom_col(color="black", fill="gray") +   geom_errorbar(aes(
+    ymax = y+epm, ymin = y-epm),
+    width = 0.25) +
+  geom_text(aes(label = groups,
+                y = y+epm*1.5)) +
+  labs(x="Rações", y="Ganho de Peso")
 ```
 
 
