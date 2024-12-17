@@ -333,38 +333,53 @@ dic(trat,yt,mcomp = "tukey", sigF = 0.05,
 Utilizando o Pacote Agricolae
 
 ```{r}
-
+duncan.test(modelo_final, "trat",
+         alpha=0.05, group = TRUE,
+         console = TRUE)
 ```
 
-Utilizando o Pacote ExpDes.pt
 
-```{r}
 
-```
 #### Teste de Student-Newman-Keuls
 
-Utilizando o Pacote Agricolae
 
 ```{r}
-
+SNK.test(modelo_final, "trat",
+         alpha=0.05, group = TRUE,
+         console = TRUE)
 ```
 
-Utilizando o Pacote ExpDes.pt
 
-```{r}
-
-```
 
 #### Teste t-Student (LSD)
-Utilizando o Pacote Agricolae
+
 
 ```{r}
+LSD.test(modelo_final, "trat",
+         alpha=0.05, group = TRUE,
+         console = TRUE)
+```
+### Gráfico de médias e letras
+
+```{r}
+tukey <- HSD.test(modelo_final, "trat",
+         alpha=0.05, group = TRUE)
+data_set |> 
+  group_by(trat) |> 
+  summarise(
+    media = mean(prod),
+    epm = sd(prod)/sqrt(n())
+  ) |> 
+  mutate(
+    trat = trat |> as_factor() |> fct_reorder(media)
+  ) |> 
+  ggplot(aes(x=trat, y=media)) + 
+  geom_col(color="black", fill="gray") +
+  geom_text(aes(label = tukey$groups$groups,
+                y = media+epm)) +
+  labs(x="Tratamentos", y="Produção (kg/parcela)")
 
 ```
 
-Utilizando o Pacote ExpDes.pt
 
-```{r}
-
-```
 
