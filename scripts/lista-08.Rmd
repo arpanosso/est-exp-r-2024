@@ -18,6 +18,7 @@ knitr::opts_chunk$set(echo = TRUE,
 ```{r}
 library(tidyverse)
 library(agricolae)
+library(ExpDes.pt)
 library(nortest)
 library(lawstat)
 library(MASS)
@@ -120,7 +121,7 @@ Uma vez o modelo salvo, precisamos extrair os resíduos, erros, para testar as p
 
 #### Extrair os resíduos e valores preditos
 ```{r}
-
+rs <- rstudent(mod)
 ```
 
 
@@ -147,17 +148,16 @@ Testando a normalidade dos resíduos e realizando a análise gráfica dos mesmos
 
 ```{r}
 # Shapiro-Wilks
-shapiro.test(res)
+shapiro.test(rs)
 
 # Kolmogorov-Smirnov
-# install.packages("nortest")
-lillie.test(res)
+lillie.test(rs)
 
 # Anderson-Darlin
-ad.test(res)
+ad.test(rs)
 
 # Cramer-von Mises
-cvm.test(res)
+cvm.test(rs)
 ```
 
 
@@ -202,7 +202,6 @@ Quatro testes podem ser empregados, o teste de Levene, o teste de Brown-Forsythe
 
 ```{r}
 # Teste clássico de Levene
-# install.packages("lawstat")
 levene.test(y,trat,location="mean")
 
 # Teste Brown-Forsythe
@@ -224,7 +223,7 @@ Se o teste for significativo, ou seja, rejeitamos a hipótese de homocedasticida
 HETEROCEDASTICIDADE IRREGULAR: devemos utilizar um teste não-paramétrico.
 HETEROCEDASTICIDADE REGULAR: existe uma relação entre a média e a variância utlizamos a tranformação 
 
-$$y* = y^{(1-b/2)}$$ 
+$$yt = y^{(1-b/2)}$$ 
 
 onde b é coeficiente angular do modelo de regressão linear entre o log da variância e o log da média de cada tratamento.
 
@@ -234,100 +233,93 @@ onde b é coeficiente angular do modelo de regressão linear entre o log da vari
 # 2) Análise de regressão linear simples de LV em função de LM
 
 # 4) Transformação, se necessária:
-yt<-y^(1-b/2)
+# yt<-y^(1-b/2)
 ```
 
-
-
 #### Transformação - Box - Cox
+A transformação Box-Cox é uma das possíveis formas de contornar o problema de dados que não obedecem os pressupostos da análise de variância, como normalidade dos dados.
 
 ```{r}
-# -------------- Homogeneidade das Variâncias (Transformações - Box-Cox) ---------------
-# A transformação Box-Cox é uma das possíveis formas de contornar o problema de dados 
-# que não obedecem os pressupostos da análise de variância, como normalidade dos dados.
-require(MASS)
 boxcox(mod,seq(0,2,0.2))
-# se lambda não difere de 1 -> Homocedástico
-# se lambda difere de 1 (Transformacao:
-       # Yt=Y^lambda    se lambda difere de 0
-       # Yt=log(Y) se lambda não difere de 0 
+```
+  + se lambda não difere de 1: Dados são homocedásticos  
+  + se lambda difere de 1 (Transformação:
 
-# -------------- A análise de variância ---------------
-# Utilizando as funções do pacote Básico e agricolae
-mod<-aov(y~trat)
-anova(mod)
+$$\begin{cases}
+yt = y^\lambda: \text{se lambda difere de 0} \\
+yt = \log{y}: \text{se lambda não difere de 0} 
+\end{cases}$$
 
-#Calculo do CV, 100*sqrt(QMr)/mediaGeral
-GLres<-df.residual(mod) 	# graus de liberdade dos resíduos
-SQres<-deviance(mod)	# soma de quadrados dos resíduos
-QMres<-SQres/GLres	# quadrado médio dos resíduos
-cv<-100*sqrt(QMres)/mean(y)
-cv
+## A análise de variância
 
-# o teste F foi significativo ao nível de 5% de probabilidade, rejeitamos H0 e concluímos que
-# as raçoes possuem efeitos diferentes quanto ao ganho de peso de animais, com um grau de confiança
-# maior que 95%
+### Definição do modelo final
 
-# ---------------------- Comparações múltiplas ------------------------
-# Quando não se tem qualquer informação a priori sobre os tratamentos, 
-# sugere-se "comparações múltiplas". Os testes mais comuns para Comparações Múltiplas são: 
-# Tukey; Duncan e Student Newman Keuls (SNK).
+### Cálculo do CV
 
-# Teste de Tukey
-TukeyHSD(mod)
-plot(TukeyHSD(mod))
+$$CV = \frac{\sqrt{QM_{res}}}{\hat{m}}$$
+```{r}
 
-# Utilizando o Pacote Agricolae
-require(agricolae)
-Tukey<-HSD.test(mod,"trat",group=TRUE,alpha=0.05)
-Tukey
-comp<-HSD.test(mod,"trat",group=TRUE,alpha=0.05)$group
-bar.group(comp,xlab="Rações", ylab="Ganho de Peso (kg)",ylim=c(0,50),
-		main="Teste de Tukey");box()
+```
 
+### Procedimento Para Comparação Múltiplas
 
-##### Utilizando o Pacote ExpDes.pt
-require(ExpDes.pt)
-dic(trat, y, quali = TRUE, mcomp = "tukey", sigT = 0.05, sigF = 0.05)
+Quando não se tem qualquer informação a priori sobre os tratamentos, sugere-se "comparações múltiplas". Os testes mais comuns para Comparações Múltiplas são: 
 
-# Teste de Duncan
-#require(agricolae)
-Duncan<-duncan.test(mod,"trat",alpha=0.05)
-Duncan
-comp<-duncan.test(mod,"trat",alpha=0.05)$group
-bar.group(comp,xlab="Rações", ylab="Ganho de Peso (kg)",ylim=c(0,50),
-		main="Teste de Duncan");box()
+  + Tukey; 
+  + Duncan;  
+  + Student Newman Keuls (SNK);
+  + t Student (LSD);
 
-# Teste de Student-Newman-Keuls
-#require(agricolae)
-snk<-SNK.test(mod, "trat", alpha=0.05)
-snk
+#### Teste de Tukey
 
-#teste de Dunnett
-#install.packages("multcomp")
-require(multcomp)
-Dunnett <- glht(mod, linfct = mcp(trat = "Dunnett"))
-summary(Dunnett)
+Utilizando o Pacote Agricolae
 
-# Teste t-Student (LSD)
-require(agricolae)
-Student<-LSD.test(mod,"trat")
-Student
+```{r}
 
-# Teste t- Student com proteção de Bonferroni
-require(ExpDes.pt)
-dic(trat,y,quali=T,mcomp="lsdb")
+```
 
+Utilizando o Pacote ExpDes.pt
 
+```{r}
 
-# Teste de Scheffé
-require(agricolae)
-Scheffe<-scheffe.test(mod,"trat")
-Scheffe
-comp<-scheffe.test(mod,"trat")$groups
-bar.group(comp,xlab="Rações", ylab="Ganho de Peso (kg)",ylim=c(0,50),
-		main="Teste de Scheffé");box()
+```
 
+#### Teste de Duncan
+Utilizando o Pacote Agricolae
+
+```{r}
+
+```
+
+Utilizando o Pacote ExpDes.pt
+
+```{r}
+
+```
+#### Teste de Student-Newman-Keuls
+
+Utilizando o Pacote Agricolae
+
+```{r}
+
+```
+
+Utilizando o Pacote ExpDes.pt
+
+```{r}
+
+```
+
+#### Teste t-Student (LSD)
+Utilizando o Pacote Agricolae
+
+```{r}
+
+```
+
+Utilizando o Pacote ExpDes.pt
+
+```{r}
 
 ```
 
