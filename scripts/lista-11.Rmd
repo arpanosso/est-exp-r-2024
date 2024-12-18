@@ -1,16 +1,17 @@
 ---
-title: "Lista-10"
-author: "Panosso, AR"
-date: "17-12-2024"
+title: "Lista-11"
+author: "Panosso, A. R."
+date: "18/12/2024"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,
                       message = FALSE,
-                      error = FALSE,
+                      erro = FALSE,
                       warning = FALSE)
 ```
+
 
 ## Roteiro para análise diagnóstico
 
@@ -29,12 +30,10 @@ theme_set(theme_bw()) # setar o tema padrão para o ggplot
 
 ### Entrada de Dados
 
-Para o exemplo, ler o arquivo **inseticidas.txt**. Não se esqueça de deixar os tratamentos como fator.
+Para o exemplo, ler o arquivo **dados-crotalaria.rds**. Não se esqueça de deixar os tratamentos como fator.
 
 ```{r}
-url <- "https://raw.githubusercontent.com/arpanosso/r-disciplina-pos/refs/heads/master/data/inseticidas.txt"
-data_set <- read.table(url,header = TRUE) |> 
-  janitor::clean_names()
+data_set <- read_rds("../data/dados-crotalaria.rds")
 glimpse(data_set)
 ```
 
@@ -46,11 +45,11 @@ Estatísticas resumos por tratamento, gráficos histograma, boxplot e qqnorm.
 
 ```{r}
 data_set |> 
-  group_by(trat) |> 
+  group_by(esp, dens) |> 
   summarise(
     n = n(),
-    media = mean(y ,na.rm = TRUE),
-    desv_pad = sd(y ,na.rm = TRUE),
+    media = mean(prod ,na.rm = TRUE),
+    desv_pad = sd(prod ,na.rm = TRUE),
     erro_pad = desv_pad/sqrt(n)
   )
 ```
@@ -59,9 +58,9 @@ data_set |>
 
 ```{r}
 data_set |> 
-  ggplot(aes(x=y , y=..density..)) +
+  ggplot(aes(x=prod , y=..density..)) +
   geom_histogram(color="black", fill="lightgray") +
-  labs(y = "Densidade", x = "Produção de Vagens")
+  labs(y = "Densidade", x = "Produção de Massa Seca")
 ```
 
 #### Gráfico Boxplot
@@ -70,26 +69,28 @@ Criar o boxplot ordenados por valor de média da variável alvo.
 
 ```{r}
 data_set |> 
+  mutate(
+    trat = interaction(esp,dens)
+  ) |> 
   group_by(trat) |> 
   mutate(
-    media = mean(y, na.rm = TRUE),
+    media = mean(prod, na.rm = TRUE),
     ) |>
   ungroup() |> 
   mutate(
     trat = trat |> as_factor() |> fct_reorder(media)
   ) |> 
-  ggplot(aes(x=trat, y=y )) +
+  ggplot(aes(x=trat, y=prod )) +
   geom_boxplot(fill="lightgray") + 
   geom_jitter(color="blue2") +
   labs(x="Tratamentos", y="Produção de Vagens") 
-  
 ```
 
 #### QQ-plot
 
 ```{r}
 data_set |> 
-  ggplot(aes(sample = y)) +
+  ggplot(aes(sample = prod)) +
   stat_qq() +
   stat_qq_line(color = "blue") +
   labs(x="Quantil teórico", y="Quantil observado")
@@ -99,16 +100,18 @@ data_set |>
 Para realizar a construção do modelo para ANOVA deve-se extrair todas as colunas envolvidas na definição do modelo da mesma.
 
 ```{r}
-y <- data_set |> pull(y)
-trat <- data_set |>  pull(trat) |> as_factor()
-bloco <- data_set |>  pull(bl) |> as_factor()
+y <- data_set |> pull(prod)
+esp<- data_set |>  pull(esp) |> as_factor()
+dens <- data_set |>  pull(dens) |> as_factor()
+trat <- interaction(esp,dens)
+bloco <- data_set |>  pull(bloco) |> as_factor()
 is.factor(trat) # verificando se trat é fator
 is.factor(bloco) # verificando se bloco é fator
 is.numeric(y) # verificando se y é numérico
 ```
 ### Definição do modelo
 
-O modelo da análise a ser utilizado será o mais simples (Delineamento Inteiramente Casualizado).
+O modelo da análise a ser utilizado será o mais simples (Delineamento em Blocos Casualizados).
 
 $$y_{ij} = \mu + \tau_i + \beta_j + \epsilon_{ij}$$
 
@@ -119,7 +122,7 @@ Para analisar as pressuposições (Normalidade dos erros e Homocedasticidade), p
 # y <- ifelse(y == outlier, new_value, y)
 
 # Definir o modelo
-mod <- aov(y~trat + bloco)
+mod <- aov(y ~ trat + bloco)
 anova(mod)
 ```
 
@@ -392,3 +395,5 @@ diagnostico |>
                 y = y+epm*1.5)) +
   labs(x="Trtamento", y="Produção de Vagens")
 ```
+
+
