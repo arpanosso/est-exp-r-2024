@@ -32,7 +32,9 @@ theme_set(theme_bw()) # setar o tema padrão para o ggplot
 Para o exemplo, ler o arquivo **producao-da-cultura.xlsx**. Não se esqueça de deixar os tratamentos como fator.
 
 ```{r}
-data_set <- read_rds("../data/ganho-de-peso.rds")
+url <- "https://raw.githubusercontent.com/arpanosso/r-disciplina-pos/refs/heads/master/data/inseticidas.txt"
+data_set <- read.table(url,header = TRUE) |> 
+  janitor::clean_names()
 glimpse(data_set)
 ```
 
@@ -44,11 +46,11 @@ Estatísticas resumos por tratamento, gráficos histograma, boxplot e qqnorm.
 
 ```{r}
 data_set |> 
-  group_by(racoes) |> 
+  group_by(trat) |> 
   summarise(
     n = n(),
-    media = mean(a_peso ,na.rm = TRUE),
-    desv_pad = sd(a_peso ,na.rm = TRUE),
+    media = mean(y ,na.rm = TRUE),
+    desv_pad = sd(y ,na.rm = TRUE),
     erro_pad = desv_pad/sqrt(n)
   )
 ```
@@ -57,9 +59,9 @@ data_set |>
 
 ```{r}
 data_set |> 
-  ggplot(aes(x=a_peso , y=..density..)) +
+  ggplot(aes(x=y , y=..density..)) +
   geom_histogram(color="black", fill="lightgray") +
-  labs(y = "Densidade", x = "Ganho de Peso")
+  labs(y = "Densidade", x = "Produção de Vagens")
 ```
 
 #### Gráfico Boxplot
@@ -68,18 +70,18 @@ Criar o boxplot ordenados por valor de média da variável alvo.
 
 ```{r}
 data_set |> 
-  group_by(racoes) |> 
+  group_by(trat) |> 
   mutate(
-    media = mean(a_peso, na.rm = TRUE),
+    media = mean(y, na.rm = TRUE),
     ) |>
   ungroup() |> 
   mutate(
-    racoes = racoes |> as_factor() |> fct_reorder(media)
+    trat = trat |> as_factor() |> fct_reorder(media)
   ) |> 
-  ggplot(aes(x=racoes, y=a_peso )) +
+  ggplot(aes(x=trat, y=y )) +
   geom_boxplot(fill="lightgray") + 
   geom_jitter(color="blue2") +
-  labs(x="Tratamentos", y="Produção da Cultura (kg/parcela)") 
+  labs(x="Tratamentos", y="Produção de Vagens") 
   
 ```
 
@@ -87,7 +89,7 @@ data_set |>
 
 ```{r}
 data_set |> 
-  ggplot(aes(sample = a_peso)) +
+  ggplot(aes(sample = y)) +
   stat_qq() +
   stat_qq_line(color = "blue") +
   labs(x="Quantil teórico", y="Quantil observado")
@@ -97,16 +99,18 @@ data_set |>
 Para realizar a construção do modelo para ANOVA deve-se extrair todas as colunas envolvidas na definição do modelo da mesma.
 
 ```{r}
-y <- data_set |> pull(a_peso)
-trat <- data_set |>  pull(racoes) |> as_factor()
+y <- data_set |> pull(y)
+trat <- data_set |>  pull(trat) |> as_factor()
+bloco <- data_set |>  pull(bl) |> as_factor()
 is.factor(trat) # verificando se trat é fator
+is.factor(bloco) # verificando se bloco é fator
 is.numeric(y) # verificando se y é numérico
 ```
 ### Definição do modelo
 
 O modelo da análise a ser utilizado será o mais simples (Delineamento Inteiramente Casualizado).
 
-$$y_{ij} = \mu + \tau_i + \epsilon_{ij}$$
+$$y_{ij} = \mu + \tau_i + \beta_j + \epsilon_{ij}$$
 
 Para analisar as pressuposições (Normalidade dos erros e Homocedasticidade), precisamos dos erros, desvios do modelo portanto, utilizamos a função `aov` - para construir o modelo da análise de variância. O resumo da análise com o quadro da ANOVA pode ser acessado com a função `anova`.
 
@@ -115,7 +119,7 @@ Para analisar as pressuposições (Normalidade dos erros e Homocedasticidade), p
 # y <- ifelse(y == outlier, new_value, y)
 
 # Definir o modelo
-mod <- aov(y~trat)
+mod <- aov(y~trat + bloco)
 anova(mod)
 ```
 
@@ -211,10 +215,10 @@ Identificado o outlier, vamos substituir o valor observado em y pelo seu valor p
 
 ```{r}
 diagnostico |> 
-  arrange(desc(rs)) |> slice(1) |> pull(y) -> outlier
+  arrange(rs) |> slice(1) |> pull(y) -> outlier
 
 diagnostico |> 
-  arrange(desc(rs)) |> slice(1) |> pull(yp) -> new_value
+  arrange(rs) |> slice(1) |> pull(yp) -> new_value
 ```
 
 ### Homogeneidade das variâncias (homocedasticidade)
@@ -386,5 +390,5 @@ diagnostico |>
     width = 0.25) +
   geom_text(aes(label = groups,
                 y = y+epm*1.5)) +
-  labs(x="Rações", y="Ganho de Peso")
+  labs(x="Trtamento", y="Produção de Vagens")
 ```

@@ -113,7 +113,7 @@ Para analisar as pressuposições (Normalidade dos erros e Homocedasticidade), p
 
 ```{r}
 # Substituição do outlier
-y <- ifelse(y == outlier, new_value, y)
+# y <- ifelse(y == outlier, new_value, y)
 
 # Definir o modelo
 mod <- aov(y~trat)
@@ -134,9 +134,10 @@ yp <- predict(mod)
 #### Definir o data.frame contendo as colunas extraídas, os resíduos e valores preditos
 
 ```{r}
-diagnostico <- data.frame(trat, y, yt, yp, rs)
+diagnostico <- data.frame(trat, y, yp, rs)
 glimpse(diagnostico)
 ```
+
 #### Histograma
 ```{r}
 diagnostico |> 
@@ -188,11 +189,11 @@ gráfico usando os três resíduos, numa mesma figura e observar o que acontece.
 res <- residuals(mod)
 rp <- rstandard(mod)
 rs <- rstudent(mod)
-yp <- predict(mod) 
+ypred <- predict(mod) 
 
-data.frame(res,rp,rs,yp) |> 
+data.frame(res,rp,rs,ypred) |> 
   pivot_longer(res:rs,names_to = "residuo", values_to = "valor") |> 
-  ggplot(aes(x=yp, y=valor, color = residuo)) +
+  ggplot(aes(x=ypred, y=valor, color = residuo)) +
   geom_point() +
   facet_wrap(~residuo, scale = "free") +
   theme(
@@ -225,17 +226,17 @@ Quatro testes podem ser empregados, o teste de Levene, o teste de Brown-Forsythe
 
 ```{r}
 # Teste clássico de Levene
-levene.test(yt,trat,location="mean")
+levene.test(y,trat,location="mean")
 
 # Teste Brown-Forsythe
-levene.test(yt,trat)
+levene.test(y,trat)
 
 #também disponivél no pacote HH
 #install.packages("HH")
-hov(yt~trat)
+hov(y~trat)
 
 # Teste de Bartlett
-bartlett.test(yt~trat)
+bartlett.test(y~trat)
 ```
 ### Transformação - Bartlett
 
@@ -366,21 +367,25 @@ LSD.test(modelo_final, "trat",
 ```{r}
 tukey <- HSD.test(modelo_final, "trat",
          alpha=0.05, group = TRUE)
-data_set |> 
+ntr <- tukey$parameters$ntr
+diagnostico |> 
   group_by(trat) |> 
   summarise(
-    media = mean(prod),
-    epm = sd(prod)/sqrt(n())
-  ) |> 
+    media = mean(y),
+    epm = sd(y)/sqrt(n())
+  ) |>
+  left_join(tukey$groups |> data.frame() |> add_column(
+  trat = rownames(tukey$groups)),
+  by = "trat") |>
+  ungroup() |> 
   mutate(
     trat = trat |> as_factor() |> fct_reorder(media)
-  ) |> 
-  ggplot(aes(x=trat, y=media)) + 
+  ) |>  
+  ggplot(aes(x=(trat), y=media)) + 
   geom_col(color="black", fill="gray") +
-  geom_text(aes(label = tukey$groups$groups,
+  geom_text(aes(label = groups,
                 y = media+epm)) +
   labs(x="Tratamentos", y="Produção (kg/parcela)")
-
 ```
 
 
