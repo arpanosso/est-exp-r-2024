@@ -11,3 +11,14 @@ write_rds(df,"data/geomorfologia.rds")
 read_xlsx("data-raw/dadosprodmacieira.xlsx") |>
   clean_names() -> df
 write_rds(df,"data/prodmacieira.rds")
+
+# FAXINA DE DADOS - producao-da-cultura
+read_xlsx("data-raw/producao-de-cultura.xlsx") |>
+  clean_names() -> df
+write_rds(df,"data/producao-de-cultura.rds")
+
+# FAXINA DE DADOS - ganho-de-peso
+read_xlsx("data-raw/ganho-de-peso.xlsx") |>
+  clean_names() -> df
+write_rds(df,"data/ganho-de-peso.rds")
+
