@@ -22,3 +22,8 @@ read_xlsx("data-raw/ganho-de-peso.xlsx") |>
   clean_names() -> df
 write_rds(df,"data/ganho-de-peso.rds")
 
+# FAXINA DE DADOS - dados-crotalaria
+read_xlsx("data-raw/dados-crotalaria.xlsx") |>
+  clean_names() -> df
+write_rds(df,"data/dados-crotalaria.rds")
+
