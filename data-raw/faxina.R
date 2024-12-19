@@ -27,3 +27,9 @@ read_xlsx("data-raw/dados-crotalaria.xlsx") |>
   clean_names() -> df
 write_rds(df,"data/dados-crotalaria.rds")
 
+# FAXINA DE DADOS -subdividida
+read.table("data-raw/subdividida.txt", h=TRUE) |>
+  clean_names() -> df
+write_rds(df,"data/subdividida.rds")
+
+

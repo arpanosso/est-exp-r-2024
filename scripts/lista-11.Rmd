@@ -296,9 +296,15 @@ yt = \log{y}: \text{se lambda não difere de 0}
 
 ### Definição do modelo final
 ```{r}
-modelo_final <- aov(y ~ esp*dens) # esp + dens + esp:dens
+modelo_final <- aov(y ~ bloco + esp*dens) # esp + dens + esp:dens
 anova(modelo_final)
 ```
+
+**Conclusões**  
+BLOCO: Não rejeitamos H0: Bloco não controlou a heteronegeneidade local.
+ESP: Rejeitamos H0: Exite efeito de espaçamento.
+DENS: Não rejeitamos H0: Não existe efeito de densidade.
+ExD: Rejeitamos H0: Os fatores não são independentes: os efeitos principais não refletem o comportamento dos níveis dos fatores. Precisamos desdobrar a interação para estudar o comportamento de um fator DENTRO dos níveis do outro fator.
 
 ### Cálculo do CV
 
@@ -310,90 +316,90 @@ qmr <- sqr/glr # calculando o quadrado médio dos resíduos
 media <- mean(y, na.rm = TRUE) # média geral do ensaio
 100*sqrt(qmr)/media # cálculo do CV
 ```
-
-### Procedimentos Para Comparações Múltiplas
-
-Quando não se tem qualquer informação a priori sobre os tratamentos, sugere-se "comparações múltiplas". Os testes mais comuns para Comparações Múltiplas são: 
-
-  + Tukey; 
-  + Duncan;  
-  + Student Newman Keuls (SNK);
-  + t Student (LSD);
-
-#### Teste de Tukey
-
-Utilizando o Pacote agricolae
-
+### Tabela de TOTAIS
 ```{r}
-HSD.test(modelo_final, "trat",
-         alpha=0.05, group = TRUE,
-         console = TRUE)
-```
-
-Utilizando o Pacote ExpDes.pt
-
-```{r}
-dic(trat,y,mcomp = "tukey", sigF = 0.05,
-    sigT = 0.05)
-```
-
-#### Teste de Duncan
-Utilizando o Pacote Agricolae
-
-```{r}
-duncan.test(modelo_final, "trat",
-         alpha=0.05, group = TRUE,
-         console = TRUE)
-```
-
-
-
-#### Teste de Student-Newman-Keuls
-
-
-```{r}
-SNK.test(modelo_final, "trat",
-         alpha=0.05, group = TRUE,
-         console = TRUE)
-```
-
-
-
-#### Teste t-Student (LSD)
-
-
-```{r}
-LSD.test(modelo_final, "trat",
-         alpha=0.05, group = TRUE,
-         console = TRUE)
-```
-### Gráfico de médias e letras
-
-```{r}
-tukey <- HSD.test(modelo_final, "trat",
-         alpha=0.05, group = TRUE)
-ntr <- tukey$parameters$ntr
-
-diagnostico |> 
-  group_by(trat) |> 
+data_set |> 
+  group_by(esp, dens) |> 
   summarise(
-    media = mean(y),
-    epm = sd(y)/sqrt(n())
-  ) |>
-  left_join(tukey$groups |> data.frame() |> add_column(
-  trat = rownames(tukey$groups)),
-  by = "trat") |>
-  ungroup() |> 
-  mutate(
-    trat = trat |> as_factor() |> fct_reorder(media)
-  ) |> 
-  ggplot(aes(x=trat, y=y)) + 
-  geom_col(color="black", fill="gray") +   geom_errorbar(aes(
-    ymax = y+epm, ymin = y-epm),
-    width = 0.25) +
-  geom_text(aes(label = groups,
-                y = y+epm*1.5)) +
-  labs(x="Trtamento", y="Produção de Vagens")
+    total = sum(prod)
+  )
 ```
+### Teste de comparação múltiplas para efeito PRINCIPAL
+
+Teste de Tukey para Espaçamento (esp)
+
+```{r}
+HSD.test(modelo_final,"esp",
+         group = TRUE, console = TRUE)
+```
+Teste de Tukey para Densidade (dens)
+
+```{r}
+HSD.test(modelo_final,"dens",
+         group = TRUE, console = TRUE)
+```
+### Desdobramento do Espaçamento dentro da Densidade
+
+```{r}
+modelo_final_esp <- aov( y ~ bloco + dens/esp)
+effects(modelo_final_esp)
+summary(modelo_final_esp,
+        split = list("dens:esp" = 
+                     list(
+                       "Esp:D15" = c(1,4),
+                       "Esp:D30" = c(2,5),
+                       "Esp:D45" = c(3,6)
+                     )))
+```
+
+### Desdobramento do Densidade dentro da Espaçamento
+
+```{r}
+modelo_final_dens <- aov( y ~ bloco + esp/dens)
+effects(modelo_final_dens)
+summary(modelo_final_dens,
+        split = list("esp:dens" = 
+                     list(
+                       "Dens:E25" = c(1,4),
+                       "Dens:E50" = c(2,5),
+                       "Dens:E75" = c(3,6)
+                     )))
+```
+
+### Análise no ExpDes.pt
+```{r}
+fat2.dbc(esp,dens,bloco,y,fac.names = c("esp","dens"))
+```
+
+
+### Gráfico das interações
+
+```{r}
+data_set |> 
+  group_by(esp, dens) |> 
+  summarise(
+    media = mean(prod)
+  ) |> 
+  ggplot(aes(x=esp, y = media, 
+             color=as_factor(dens))) +
+  geom_point() +
+  geom_line()
+```
+
+```{r}
+data_set |> 
+  group_by(esp, dens) |> 
+  summarise(
+    media = mean(prod)
+  ) |> 
+  ggplot(aes(x=dens, y = media, 
+             color=as_factor(esp))) +
+  geom_point() +
+  geom_line()
+```
+
+
+
+
 
 
