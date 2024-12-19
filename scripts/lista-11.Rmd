@@ -236,7 +236,7 @@ levene.test(y,trat,location="mean")
 # Teste Brown-Forsythe
 levene.test(y,trat)
 
-#também disponivél no pacote HH
+#também disponível no pacote HH
 #install.packages("HH")
 hov(y~trat)
 
@@ -296,7 +296,7 @@ yt = \log{y}: \text{se lambda não difere de 0}
 
 ### Definição do modelo final
 ```{r}
-modelo_final <- aov(y ~ trat)
+modelo_final <- aov(y ~ esp*dens) # esp + dens + esp:dens
 anova(modelo_final)
 ```
 
