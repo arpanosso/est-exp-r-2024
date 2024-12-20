@@ -1,0 +1,229 @@
+---
+title: "Lista-13"
+author: "Panosso, AR"
+date: "2024-12-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      erro = FALSE,
+                      warning = FALSE)
+```
+
+### Faxina dos dados
+
+```{r}
+readxl::read_xlsx("../data-raw/tabela_dados_vet.xlsx") |> 
+  janitor::clean_names() |> 
+  dplyr::mutate(across(blood_q_pcr:ifa3,~(.=="Positive")),
+                anemic = anemic == "Yes") -> df
+readr::write_rds(df,"../data/tabela-dados-vet.rds")
+```
+
+### Realizando a comparação entre Métodos
+
+#### Carregando pacotes
+```{r}
+library(tidyverse)
+
+```
+
+#### Lendo o banco de dados
+```{r}
+data_set <- read_rds("../data/tabela-dados-vet.rds")
+```
+
+## Teste de McNemars
+
+Utilizado para comparar proporções em estudos pareados ou dependentes. 
+
+Útil em situações onde os dados são categóricos e se deseja verificar se há uma mudança significativa entre dois momentos ou condições, por exemplo, antes e depois de uma intervenção em um mesmo grupo.
+
+**Quando usar o teste de McNemar**
+
+  + Estudos pareados ou dependentes: Como no caso de pacientes avaliados antes e depois de um tratamento, ou amostras relacionadas. 
+  
+  + Variáveis categóricas binárias: Por exemplo, sucesso/fracasso, sim/não, presente/ausente.  
+  
+  + Objetivo: Verificar se há uma diferença significativa na distribuição das categorias entre os dois momentos.
+
+#### Hipóteses do teste
+
+Hipótese nula (H0): Não há diferença significativa entre as proporções (b = c).
+
+Hipótese alternativa (H1): Há diferença significativa entre as proporções (b ≠ c).
+
+#### Estatística do teste
+$$\chi^2 = \frac{(b-c)^2}{b+c} \sim \mathcal{\chi}^2_{1}$$
+Essa estatística segue uma distribuição qui-quadrado com 1 grau de liberdade.
+
+O valor crítico do teste ao alpha de 5% $(\alpha=5\%)$ é $3,84$
+
+```{r}
+# Calculando o valor tabelado
+qchisq(1-0.05,1)
+```
+
+Agora podemos fazer as comparações, a função `mcnemar.test` não exige a tabela de contingência 2 x 2.
+
+#### Blood_qPCR X demais
+
+
+```{r}
+mcnemar.test(data_set$blood_q_pcr,data_set$culture_q_pcr)
+mcnemar.test(data_set$blood_q_pcr,data_set$isolate)
+mcnemar.test(data_set$blood_q_pcr,data_set$ifa1)
+mcnemar.test(data_set$blood_q_pcr,data_set$ifa2)
+mcnemar.test(data_set$blood_q_pcr,data_set$ifa3)
+```
+
+#### Culture_qPCR x demais
+
+
+```{r}
+mcnemar.test(data_set$culture_q_pcr,data_set$isolate)
+mcnemar.test(data_set$culture_q_pcr,data_set$ifa1)
+mcnemar.test(data_set$culture_q_pcr,data_set$ifa2)
+mcnemar.test(data_set$culture_q_pcr,data_set$ifa3)
+```
+
+#### Isolate x demais
+
+
+```{r}
+mcnemar.test(data_set$isolate,data_set$ifa1)
+mcnemar.test(data_set$isolate,data_set$ifa2)
+mcnemar.test(data_set$isolate,data_set$ifa3)
+```
+
+Se p < 0,05, os testes tem desempenhos diferentes
+
+
+## Análise de correlação Phi
+
+O  coeficiente phi é uma medida de associação entre duas variáveis categóricas binárias, ou seja, variáveis que possuem exatamente duas categorias (como "sim" e "não" ou "presente" e "ausente"). Ele é amplamente utilizado em análise de correlação para variáveis dicotômicas, permitindo avaliar a força e a direção da relação entre elas.
+
+
+O valor do coeficiente phi varia entre −1 e 1:
+
+ϕ=1: Associação perfeita positiva (as duas variáveis estão perfeitamente relacionadas de forma direta).  
+ϕ=−1: Associação perfeita negativa (as duas variáveis estão perfeitamente relacionadas de forma inversa).  
+ϕ=0: Nenhuma associação (as variáveis são independentes).
+
+
+
+
+```{r}
+library(psych)
+data_set |> 
+  select(blood_q_pcr, culture_q_pcr) |> 
+  mutate(
+    a = as.numeric(blood_q_pcr == TRUE & culture_q_pcr == TRUE),
+    b = as.numeric(blood_q_pcr == TRUE & culture_q_pcr == FALSE),
+    c = as.numeric(blood_q_pcr == FALSE & culture_q_pcr == TRUE),
+    d = as.numeric(blood_q_pcr == FALSE & culture_q_pcr == FALSE)
+  ) |> 
+  summarise(
+    a=sum(a),
+    b=sum(b),
+    c=sum(c),
+    d=sum(d)
+  ) |> as.matrix() |> as.vector() |> phi()
+```
+
+```{r}
+data_set_dic <- data_set |> select(blood_q_pcr:ifa3) |> data.frame()
+mat_phi <- matrix()
+n <- length(data_set_dic)
+mat_phi <- matrix(ncol=n,nrow = n)
+for(i in 1:length(data_set_dic)){
+  for(j in 1:length(data_set_dic)){
+    vl1 <- data_set_dic[,i]
+    vl2 <- data_set_dic[,j]
+    a = sum(vl1==TRUE & vl2==TRUE)
+    b = sum(vl1==TRUE & vl2==FALSE)
+    c = sum(vl1==FALSE & vl2==TRUE)
+    d = sum(vl1==FALSE & vl2==FALSE)
+    mat_phi[i,j] <- phi(c(a,b,c,d)) 
+  }
+}
+colnames(mat_phi) <- rownames(mat_phi) <- names(data_set_dic)
+mat_phi
+corrplot::corrplot(mat_phi)
+```
+
+## Teste exato de Fischer
+
+```{r}
+tabela <- matrix(c(22, 32, 10, 36), 
+                 nrow = 2, 
+                 byrow = TRUE, 
+                 dimnames = list(Sex = c("Male", "Female"), 
+                                 Result = c("Positive", "Negative")))
+
+# Visualizando a tabela
+print(tabela)
+
+# Realizando o Teste Exato de Fisher
+fisher.test(tabela)
+
+# Intervalo de confiança
+22/54 + qnorm(c(0.025,1-0.025))*sqrt(22/54*(1-22/54)/100)
+10/46 + qnorm(c(0.025,1-0.025))*sqrt(10/46*(1-10/46)/100)
+```
+
+```{r}
+tabela <- matrix(c(27, 67-27, 19, 33-19), 
+                 nrow = 2, 
+                 byrow = TRUE, 
+                 dimnames = list(Sex = c("Male", "Female"), 
+                                 Result = c("Positive", "Negative")))
+
+# Visualizando a tabela
+print(tabela)
+
+# Realizando o Teste Exato de Fisher
+fisher.test(tabela)
+
+# Intervalo de confiança
+22/54 + qnorm(c(0.025,1-0.025))*sqrt(22/54*(1-22/54)/100)
+10/46 + qnorm(c(0.025,1-0.025))*sqrt(10/46*(1-10/46)/100)
+```
+  
+  ### Diagrama de Venn
+```{r}
+# install.packages("ggVennDiagram")
+library(ggVennDiagram)
+genes <- paste("gene",1:1000,sep="")
+set.seed(20231214)
+x <- list(A=sample(genes,300),
+          B=sample(genes,525),
+          C=sample(genes,440),
+          D=sample(genes,350))
+
+library(ggplot2)
+
+data_set$sample[
+  data_set$anemic ==data_set$blood_q_pcr
+]
+
+x <- list(A=data_set$sample[
+  data_set$anemic ==data_set$blood_q_pcr
+],
+          B=data_set$sample[
+  data_set$anemic ==data_set$culture_q_pcr
+],
+          C=data_set$sample[
+  data_set$anemic ==data_set$isolate
+],
+          D=data_set$sample[
+  data_set$anemic ==data_set$ifa1
+])
+
+ggVennDiagram(x) + scale_fill_gradient(low="grey90",high = "red")
+```
+  
+  
+  
