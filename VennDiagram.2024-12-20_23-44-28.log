@@ -1,0 +1,18 @@
+INFO [2024-12-20 23:44:28] [[1]]
+INFO [2024-12-20 23:44:28] list(A = 1:150, B = 121:170)
+INFO [2024-12-20 23:44:28] 
+INFO [2024-12-20 23:44:28] $filename
+INFO [2024-12-20 23:44:28] NULL
+INFO [2024-12-20 23:44:28] 
+ERROR [2024-12-21 00:01:29] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area
+ERROR [2024-12-21 00:01:34] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area
+ERROR [2024-12-21 10:59:56] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area
+ERROR [2024-12-21 10:59:58] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area
+ERROR [2024-12-21 11:00:37] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area
+ERROR [2024-12-21 11:00:51] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area
+ERROR [2024-12-21 11:01:10] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area
+ERROR [2024-12-21 11:01:21] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area
+ERROR [2024-12-21 11:01:50] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area
+ERROR [2024-12-21 11:01:55] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area
+ERROR [2024-12-21 11:01:59] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area
+ERROR [2024-12-21 11:02:02] Impossible: a1  <- area3 - a2 - a4 - a5 - a6 - a7 - a12 - a13 produces negative area

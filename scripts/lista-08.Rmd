@@ -113,7 +113,7 @@ Para analisar as pressuposições (Normalidade dos erros e Homocedasticidade), p
 
 ```{r}
 # Substituição do outlier
-# y <- ifelse(y == outlier, new_value, y)
+# y <- ifelse(rs == rs_outlier, new_value, y)
 
 # Definir o modelo
 mod <- aov(y~trat)

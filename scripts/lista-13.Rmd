@@ -1,229 +1,161 @@
 ---
 title: "Lista-13"
-author: "Panosso, AR"
-date: "2024-12-19"
+author: "Panosso, A. R."
+date: "20-12-2024"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,
-                      message = FALSE,
-                      erro = FALSE,
-                      warning = FALSE)
+                      warning = FALSE,
+                      error = FALSE, 
+                      message = FALSE)
 ```
 
-### Faxina dos dados
-
-```{r}
-readxl::read_xlsx("../data-raw/tabela_dados_vet.xlsx") |> 
-  janitor::clean_names() |> 
-  dplyr::mutate(across(blood_q_pcr:ifa3,~(.=="Positive")),
-                anemic = anemic == "Yes") -> df
-readr::write_rds(df,"../data/tabela-dados-vet.rds")
-```
-
-### Realizando a comparação entre Métodos
-
-#### Carregando pacotes
+### Carregando pacotes
 ```{r}
 library(tidyverse)
-
-```
-
-#### Lendo o banco de dados
-```{r}
-data_set <- read_rds("../data/tabela-dados-vet.rds")
-```
-
-## Teste de McNemars
-
-Utilizado para comparar proporções em estudos pareados ou dependentes. 
-
-Útil em situações onde os dados são categóricos e se deseja verificar se há uma mudança significativa entre dois momentos ou condições, por exemplo, antes e depois de uma intervenção em um mesmo grupo.
-
-**Quando usar o teste de McNemar**
-
-  + Estudos pareados ou dependentes: Como no caso de pacientes avaliados antes e depois de um tratamento, ou amostras relacionadas. 
-  
-  + Variáveis categóricas binárias: Por exemplo, sucesso/fracasso, sim/não, presente/ausente.  
-  
-  + Objetivo: Verificar se há uma diferença significativa na distribuição das categorias entre os dois momentos.
-
-#### Hipóteses do teste
-
-Hipótese nula (H0): Não há diferença significativa entre as proporções (b = c).
-
-Hipótese alternativa (H1): Há diferença significativa entre as proporções (b ≠ c).
-
-#### Estatística do teste
-$$\chi^2 = \frac{(b-c)^2}{b+c} \sim \mathcal{\chi}^2_{1}$$
-Essa estatística segue uma distribuição qui-quadrado com 1 grau de liberdade.
-
-O valor crítico do teste ao alpha de 5% $(\alpha=5\%)$ é $3,84$
-
-```{r}
-# Calculando o valor tabelado
-qchisq(1-0.05,1)
-```
-
-Agora podemos fazer as comparações, a função `mcnemar.test` não exige a tabela de contingência 2 x 2.
-
-#### Blood_qPCR X demais
-
-
-```{r}
-mcnemar.test(data_set$blood_q_pcr,data_set$culture_q_pcr)
-mcnemar.test(data_set$blood_q_pcr,data_set$isolate)
-mcnemar.test(data_set$blood_q_pcr,data_set$ifa1)
-mcnemar.test(data_set$blood_q_pcr,data_set$ifa2)
-mcnemar.test(data_set$blood_q_pcr,data_set$ifa3)
-```
-
-#### Culture_qPCR x demais
-
-
-```{r}
-mcnemar.test(data_set$culture_q_pcr,data_set$isolate)
-mcnemar.test(data_set$culture_q_pcr,data_set$ifa1)
-mcnemar.test(data_set$culture_q_pcr,data_set$ifa2)
-mcnemar.test(data_set$culture_q_pcr,data_set$ifa3)
-```
-
-#### Isolate x demais
-
-
-```{r}
-mcnemar.test(data_set$isolate,data_set$ifa1)
-mcnemar.test(data_set$isolate,data_set$ifa2)
-mcnemar.test(data_set$isolate,data_set$ifa3)
-```
-
-Se p < 0,05, os testes tem desempenhos diferentes
-
-
-## Análise de correlação Phi
-
-O  coeficiente phi é uma medida de associação entre duas variáveis categóricas binárias, ou seja, variáveis que possuem exatamente duas categorias (como "sim" e "não" ou "presente" e "ausente"). Ele é amplamente utilizado em análise de correlação para variáveis dicotômicas, permitindo avaliar a força e a direção da relação entre elas.
-
-
-O valor do coeficiente phi varia entre −1 e 1:
-
-ϕ=1: Associação perfeita positiva (as duas variáveis estão perfeitamente relacionadas de forma direta).  
-ϕ=−1: Associação perfeita negativa (as duas variáveis estão perfeitamente relacionadas de forma inversa).  
-ϕ=0: Nenhuma associação (as variáveis são independentes).
-
-
-
-
-```{r}
+library(readxl)
 library(psych)
-data_set |> 
-  select(blood_q_pcr, culture_q_pcr) |> 
-  mutate(
-    a = as.numeric(blood_q_pcr == TRUE & culture_q_pcr == TRUE),
-    b = as.numeric(blood_q_pcr == TRUE & culture_q_pcr == FALSE),
-    c = as.numeric(blood_q_pcr == FALSE & culture_q_pcr == TRUE),
-    d = as.numeric(blood_q_pcr == FALSE & culture_q_pcr == FALSE)
-  ) |> 
-  summarise(
-    a=sum(a),
-    b=sum(b),
-    c=sum(c),
-    d=sum(d)
-  ) |> as.matrix() |> as.vector() |> phi()
+library(irr)
+library(VennDiagram)
 ```
+
+### Entrada de dados
 
 ```{r}
-data_set_dic <- data_set |> select(blood_q_pcr:ifa3) |> data.frame()
-mat_phi <- matrix()
-n <- length(data_set_dic)
-mat_phi <- matrix(ncol=n,nrow = n)
-for(i in 1:length(data_set_dic)){
-  for(j in 1:length(data_set_dic)){
-    vl1 <- data_set_dic[,i]
-    vl2 <- data_set_dic[,j]
-    a = sum(vl1==TRUE & vl2==TRUE)
-    b = sum(vl1==TRUE & vl2==FALSE)
-    c = sum(vl1==FALSE & vl2==TRUE)
-    d = sum(vl1==FALSE & vl2==FALSE)
-    mat_phi[i,j] <- phi(c(a,b,c,d)) 
-  }
-}
-colnames(mat_phi) <- rownames(mat_phi) <- names(data_set_dic)
-mat_phi
-corrplot::corrplot(mat_phi)
+data_set <- read_rds("../data/tabela-dados-vet.rds") 
+glimpse(data_set)
 ```
 
-## Teste exato de Fischer
+## Comparison of Methods
+
+### McNemar's Test
 
 ```{r}
-tabela <- matrix(c(22, 32, 10, 36), 
-                 nrow = 2, 
-                 byrow = TRUE, 
-                 dimnames = list(Sex = c("Male", "Female"), 
-                                 Result = c("Positive", "Negative")))
+blood_q_pcr <- data_set |> pull(blood_q_pcr)
+culture_q_pcr <- data_set |> pull(culture_q_pcr)
+isolate <- data_set |> pull(isolate)
+ifa  <- data_set |> pull(ifa)         
+mcnemar.test(blood_q_pcr,culture_q_pcr)
+mcnemar.test(blood_q_pcr,isolate)
+mcnemar.test(blood_q_pcr,ifa)
 
-# Visualizando a tabela
-print(tabela)
+mcnemar.test(culture_q_pcr,isolate)
+mcnemar.test(culture_q_pcr,ifa)
 
-# Realizando o Teste Exato de Fisher
-fisher.test(tabela)
-
-# Intervalo de confiança
-22/54 + qnorm(c(0.025,1-0.025))*sqrt(22/54*(1-22/54)/100)
-10/46 + qnorm(c(0.025,1-0.025))*sqrt(10/46*(1-10/46)/100)
+mcnemar.test(isolate,ifa)
 ```
+
+### Correlation Analysis - Phi coefficient
+```{r}
+# install.packages("psych")
+# verificando a tabela de contingência
+table(blood_q_pcr,culture_q_pcr) |> as.matrix() |> phi()
+table(blood_q_pcr,isolate) |> as.matrix() |> phi()
+table(blood_q_pcr,ifa) |> as.matrix() |> phi()
+table(culture_q_pcr,isolate) |> as.matrix() |> phi()
+table(culture_q_pcr,ifa) |> as.matrix() |> phi()
+table(isolate,ifa) |> as.matrix() |> phi()
+```
+
+### agreement between four different methodologies, Fleiss' Kappa
 
 ```{r}
-tabela <- matrix(c(27, 67-27, 19, 33-19), 
-                 nrow = 2, 
-                 byrow = TRUE, 
-                 dimnames = list(Sex = c("Male", "Female"), 
-                                 Result = c("Positive", "Negative")))
-
-# Visualizando a tabela
-print(tabela)
-
-# Realizando o Teste Exato de Fisher
-fisher.test(tabela)
-
-# Intervalo de confiança
-22/54 + qnorm(c(0.025,1-0.025))*sqrt(22/54*(1-22/54)/100)
-10/46 + qnorm(c(0.025,1-0.025))*sqrt(10/46*(1-10/46)/100)
+# install.packages("irr")
+kappam.fleiss(data_set |> select(blood_q_pcr:ifa))
 ```
-  
-  ### Diagrama de Venn
+
+Com um p-valor maior que 0.05, não há evidências estatísticas para rejeitar a hipótese nula, ou seja, não se pode afirmar que a concordância é melhor que a esperada pelo acaso. Nesse caso, um Kappa de -0.0363 sugere que a concordância entre os avaliadores é praticamente inexistente ou até ligeiramente menor que o esperado por acaso.
+
+
+### Fischer Exact (2tail p-value) - TABLE 3
+
 ```{r}
-# install.packages("ggVennDiagram")
-library(ggVennDiagram)
-genes <- paste("gene",1:1000,sep="")
-set.seed(20231214)
-x <- list(A=sample(genes,300),
-          B=sample(genes,525),
-          C=sample(genes,440),
-          D=sample(genes,350))
-
-library(ggplot2)
-
-data_set$sample[
-  data_set$anemic ==data_set$blood_q_pcr
-]
-
-x <- list(A=data_set$sample[
-  data_set$anemic ==data_set$blood_q_pcr
-],
-          B=data_set$sample[
-  data_set$anemic ==data_set$culture_q_pcr
-],
-          C=data_set$sample[
-  data_set$anemic ==data_set$isolate
-],
-          D=data_set$sample[
-  data_set$anemic ==data_set$ifa1
-])
-
-ggVennDiagram(x) + scale_fill_gradient(low="grey90",high = "red")
+table_3 <- matrix(c(22,32,10,36),
+                  ncol=2,
+                  byrow = TRUE)
+fisher.test(table_3,conf.int = TRUE)
 ```
-  
-  
-  
+
+### Intervalo de confiânça a 99% para a proporção
+```{r}
+p_m <- 22/54
+p_f <- 10/46
+n = 54 + 46
+q_1 <- qnorm(c(0.005,0.995))
+q_5 <- qnorm(c(0.025,0.975))
+```
+$$IC(95\%) = \left[ \hat{p} \pm 1,96\sqrt{\frac{\hat{p}(1-\hat{p})}{n}}  \right]$$
+
+$$IC(99\%) = \left[ \hat{p} \pm 2,57\sqrt{\frac{\hat{p}(1-\hat{p})}{n}}  \right]$$
+
+```{r}
+p_m + q_1 * sqrt(p_m*(1-p_m)/n)
+p_f + q_5 * sqrt(p_f*(1-p_f)/n)
+```
+
+### Fischer Exact (2tail p-value) - TABLE 4
+
+```{r}
+table_4 <- matrix(c(27,40,19,14),
+                  ncol=2,
+                  byrow = TRUE)
+fisher.test(table_4,conf.int = TRUE)
+```
+
+### Intervalo de confiânça a 99% para a proporção
+```{r}
+p_m <- 27/67
+p_f <- 19/33
+n = 67 + 33
+q_1 <- qnorm(c(0.005,0.995))
+q_5 <- qnorm(c(0.025,0.975))
+```
+$$IC(95\%) = \left[ \hat{p} \pm 1,96\sqrt{\frac{\hat{p}(1-\hat{p})}{n}}  \right]$$
+
+$$IC(99\%) = \left[ \hat{p} \pm 2,57\sqrt{\frac{\hat{p}(1-\hat{p})}{n}}  \right]$$
+
+
+```{r}
+p_m + q_1 * sqrt(p_m*(1-p_m)/n)
+p_f + q_1 * sqrt(p_f*(1-p_f)/n)
+```
+
+### Venn's Diagram
+
+```{r}
+area1 <- data_set |> filter(blood_q_pcr) |> count() |> pull(n)
+area2 <- data_set |> filter(culture_q_pcr) |> count() |> pull(n)
+area3 <- data_set |> filter(isolate) |> count() |> pull(n)
+area4 <- data_set |> filter(ifa) |> count() |> pull(n)
+n12 <- data_set |> filter(blood_q_pcr,culture_q_pcr) |> count() |> pull(n)
+n23 <- data_set |> filter(culture_q_pcr,isolate) |> count() |> pull(n)
+n13 <- data_set |> filter(blood_q_pcr,isolate) |> count() |> pull(n)
+n14 <- data_set |> filter(blood_q_pcr,ifa) |> count() |> pull(n)
+n24 <- data_set |> filter(culture_q_pcr,ifa) |> count() |> pull(n)
+n34 <- data_set |> filter(isolate,ifa) |> count() |> pull(n)
+n123 <- data_set |> filter(blood_q_pcr,culture_q_pcr,isolate) |> count() |> pull(n)
+n124 <- data_set |> filter(blood_q_pcr,culture_q_pcr,ifa) |> count() |> pull(n)
+n234 <- data_set |> filter(culture_q_pcr,isolate,ifa) |> count() |> pull(n)
+n134 <- data_set |> filter(blood_q_pcr,isolate,ifa) |> count() |> pull(n)
+n1234 <- data_set |> filter(blood_q_pcr,culture_q_pcr,isolate,ifa) |> count() |> pull(n)
+```
+
+
+```{r}
+draw.quad.venn(area1, area2, area3,  
+               area4, n12, n13, n14,  
+               n23, n24, n34, n123,  
+               n124, n134, n234, n1234,  
+               category=c("Blood qPCR","Culture qPCR","Isolate","Ifa"), 
+               col="Black",fill=c("Red","Blue","Green","Purple")) 
+
+```
+
+
+
+
+
+
+
